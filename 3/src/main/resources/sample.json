@@ -1,0 +1,48 @@
+{
+  "runCount": 4,
+  "timeout": 30,
+  "configs": [
+    {
+      "size": 7,
+      "qos": 2,
+      "topic": "/foo",
+      "payload": null
+    },
+    {
+      "size": 3,
+      "qos": 0,
+      "topic": "/foo",
+      "payload": null
+    },
+    {
+      "size": 10,
+      "qos": 0,
+      "topic": "/bar",
+      "payload": null
+    },
+    {
+      "size": 20,
+      "qos": 2,
+      "topic": "/foo",
+      "payload": "The quick brown fox jumps over the lazy dog."
+    },
+    {
+      "size": 50,
+      "qos": 1,
+      "topic": "/bar",
+      "payload": "The five boxing wizards jump quickly."
+    },
+    {
+      "size": 3,
+      "qos": 0,
+      "topic": "/foo",
+      "payload": "Mannschaft spielt offensiv und die Name offensiv wie Bayern. L"
+    },
+    {
+      "size": 3,
+      "qos": 0,
+      "topic": "/bar",
+      "payload": "Es gibt im Moment in diese Mannschaft, oh, einige Spieler vergessen ihnen Profi was sie sind. Ich lese nicht sehr viele Zeitungen, aber ich habe gehört viele Situationen. Erstens: wir haben nicht offe"
+    }
+  ]
+}

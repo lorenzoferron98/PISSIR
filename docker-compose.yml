@@ -1,0 +1,17 @@
+version: '3.7'
+services:
+  eclipse-mosquitto:
+    ports:
+      - '1883:1883'
+      - '9001:9001'
+      - '8883:8883'
+    volumes:
+      - './mosquitto.conf:/mosquitto/config/mosquitto.conf'
+    image: eclipse-mosquitto
+  rabbitmq:
+    container_name: rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+      - '5671:5671'
+    image: 'rabbitmq:3-management'

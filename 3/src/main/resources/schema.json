@@ -1,0 +1,129 @@
+{
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://example.com/root.json",
+  "type": "object",
+  "title": "Enviroment",
+  "description": "An env of testing",
+  "default": null,
+  "readOnly": true,
+  "writeOnly": false,
+  "additionalProperties": false,
+  "required": [
+    "runCount",
+    "timeout",
+    "configs"
+  ],
+  "properties": {
+    "runCount": {
+      "$id": "#/properties/runCount",
+      "type": "integer",
+      "title": "runCount",
+      "description": "Number of run",
+      "default": 10,
+      "examples": [
+        1000
+      ],
+      "readOnly": false,
+      "writeOnly": true,
+      "minimum": 1.0
+    },
+    "timeout": {
+      "$id": "#/properties/timeout",
+      "type": "integer",
+      "title": "Timeout",
+      "description": "Timeout in seconds",
+      "default": 30,
+      "examples": [
+        30
+      ],
+      "readOnly": true,
+      "writeOnly": false,
+      "minimum": 30.0
+    },
+    "configs": {
+      "$id": "#/properties/configs",
+      "type": "array",
+      "title": "Executors",
+      "description": "An array of executor descriptors",
+      "default": null,
+      "readOnly": true,
+      "writeOnly": false,
+      "minItems": 1,
+      "uniqueItems": false,
+      "additionalItems": false,
+      "items": {
+        "$id": "#/properties/configs/items",
+        "type": "object",
+        "title": "Executor",
+        "description": "An executor (publisher/sbuscriber) instance.",
+        "default": null,
+        "readOnly": true,
+        "writeOnly": false,
+        "additionalProperties": false,
+        "required": [
+          "size",
+          "qos",
+          "topic",
+          "payload"
+        ],
+        "properties": {
+          "size": {
+            "$id": "#/properties/configs/items/properties/size",
+            "type": "integer",
+            "title": "Size",
+            "description": "Number of kind of executor instance",
+            "examples": [
+              50
+            ],
+            "readOnly": true,
+            "writeOnly": false,
+            "minimum": 1.0
+          },
+          "qos": {
+            "$id": "#/properties/configs/items/properties/qos",
+            "type": "integer",
+            "title": "QoS",
+            "description": "QoS for this executor",
+            "examples": [
+              2
+            ],
+            "readOnly": true,
+            "writeOnly": false,
+            "minimum": 0.0,
+            "maximum": 2.0
+          },
+          "topic": {
+            "$id": "#/properties/configs/items/properties/topic",
+            "type": "string",
+            "title": "Topic",
+            "description": "Topic to subscribe/publish",
+            "default": "/",
+            "examples": [
+              "/foo/"
+            ],
+            "readOnly": true,
+            "writeOnly": false,
+            "minLength": 1,
+            "pattern": "^/.*$"
+          },
+          "payload": {
+            "$id": "#/properties/configs/items/properties/payload",
+            "type": [
+              "string",
+              "null"
+            ],
+            "title": "Payload",
+            "description": "Payload for messages to be published",
+            "default": null,
+            "examples": [
+              "The quick brown fox jumps over the lazy dog"
+            ],
+            "readOnly": true,
+            "writeOnly": false
+          }
+        }
+      }
+    }
+  }
+}
