@@ -21,3 +21,11 @@ API REST dimostrativa. [Vai all'esercizio](4)
 ## Esercizio 5
 
 Implementazione chiamata REST via RabbitMQ. [Vai all'esercizio](5)
+
+## Compila da sorgente
+
+Per compilare è richiesto [Maven](https://maven.apache.org/). Eseguire da una finestra di terminale:
+
+```bash
+mvn package
+```
