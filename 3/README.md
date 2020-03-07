@@ -47,14 +47,14 @@ Si noti inoltre che è possibile avere _publisher_ che pubblicano dove non ci so
 ovvero _subscriber_ che si sottoscrivono dove nessun _publisher_ pubblica.
 
 Passiamo ora a trattare l'output fornito dal software di benchmark. Esso è composto da 6 campi, esaminiamoli:
-* `sendMsg` indica il numero totale di messaggi pubblicati.
+* `sendMsg` indica il numero totale di messaggi pubblicati dai _publisher_.
 * `rcvMsg` indica il numero totale di messaggi ricevuti dai _subscriber_.
 * `lostMsg*` indica il numero di messaggi persi. Si noti che il numero potrebbe essere non preciso qualora si utilizzano
   i _wildcards_. Il motivo di questa limitazione è da ricercarsi nell'implementazione: infatti per sapere quanti messaggi 
   un _subscriber_ non ha ricevuto bisogna conoscere quanti ne avrebbe dovuto ricevere, tale operazione risulta difficile 
   qualora vi siano degli _wildcards_.
 * `averageRTT (ms)` indica il RTT medio in millisecondi. Per una maggiore precisione tale implementazione tiene in 
-  considerazione dei QoS scelti: infatti con Qos 0 il RTT come il tempo per passare dal livello applicativo a quello 
+  considerazione dei QoS scelti: infatti con Qos 0 il RTT è calcolato come il tempo per passare dal livello applicativo a quello 
   fisico. Se facessimo una media unica andremmo incontro a dati che non rispecchiano le naturali aspettative: infatti 
   essendo il RTT per QoS 1 o 2 di molto superiore a QoS 0, esso potrebbe essere eccessivamente influenzato dagli altri.
 * `averageElapsedTime (s)` indica il tempo medio in millisecondi delle esecuzioni. Tale misura è utile perché nonostante
@@ -76,7 +76,7 @@ nominato "results#.txt". Esaminiamo alcuni di questi file:
 Si conclude questa sperimentazione con un approfondimento: infatti leggendo la documentazione di Mosquitto si scopre che
 l'obbiettivo di questo esercizio è già stato fornito dal broker. Esiste infatti, un topic "speciale" 
 `$SYS/broker/load/messages/sent/1min` che permette di conoscere la media mobile esponenziale di messaggi spediti nell'ultimo
-minuto dal broker. Tuttavia l'approccio usato dal broker risulta molto più preciso esso infatti deve tenere in considerazione
+minuto dal broker. Tuttavia l'approccio usato dal broker risulta molto più preciso. Esso, infatti, deve tenere in considerazione
 di tutti quei messaggi non utili, ma richiesti da MQTT, ne sono un esempio `PUBACK` (per QoS 1) e `PUBCOMP` (per QoS 2).
 
 ### Requisiti
@@ -91,6 +91,7 @@ java -jar target/env-qtt.jar ENV_FILE URI [-h] [-V] [-v]
 ```
 dove:
 * `ENV_FILE` indica un file JSON che descrive l'ambiente di testing (si veda sopra l'introduzione).
-* `URL` indica l'**URI** del broker da "stressare". Il formato è `[scheme]://[username:[password]@[host]:[port]`.
+* `URL` indica l'**URI** del broker da "stressare". Il formato è `[scheme]://[username:[password]@[host]:[port]` (per 
+  maggiori dettagli si veda l'esercizio [5](../5/README.md#demo).
 * `-V | --verbose` mostra i dati di ogni prova intermedia prima dei risultati medi.
 * `-h` e `-v` sono autoesplicativi
