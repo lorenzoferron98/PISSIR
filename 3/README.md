@@ -92,6 +92,6 @@ java -jar target/env-qtt.jar ENV_FILE URI [-h] [-V] [-v]
 dove:
 * `ENV_FILE` indica un file JSON che descrive l'ambiente di testing (si veda sopra l'introduzione).
 * `URL` indica l'**URI** del broker da "stressare". Il formato è `[scheme]://[username:[password]@[host]:[port]` (per 
-  maggiori dettagli si veda l'esercizio [5](../5/README.md#demo).
+  maggiori dettagli si veda l'esercizio [5](../5/README.md#demo)).
 * `-V | --verbose` mostra i dati di ogni prova intermedia prima dei risultati medi.
 * `-h` e `-v` sono autoesplicativi
