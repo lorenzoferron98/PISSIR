@@ -58,8 +58,8 @@ Le due classi sono implementate nella libreria di RabbitMQ. Nel seguito le illus
      Per creare un oggetto dell'interfaccia `JsonService` si è utilizzato il metodo `createProxy(Class<T> klass)` il
      quale, preso come parametro la metaclasse `JsonService.class` ne crea una sua istanza. Tuttavia l'invocazione di 
      un suo metodo viene intercettata dal metodo <code>[invoke(...)]</code> dell'interfaccia <code>[InvocationHandler]</code>, 
-     tale metodo utilizzando la tecnica di riflessione crea un <code>[JsonRpcMapper.JsonRpcRequest]</code> secondo le 
-     specifiche del JSON-RPC (versione 1.1). La richiesta così creata viene pubblicata sulla coda.
+     tale metodo utilizzando la tecnica di riflessione crea un oggetto <code>[JsonRpcMapper.JsonRpcRequest]</code> secondo 
+     le specifiche del JSON-RPC (versione 1.1). La richiesta così creata viene pubblicata sulla coda.
       
 * `JsonRpcServer(Channel channel, String queueName, Class<?> interfaceClass, Object interfaceInstance, JsonRpcMapper mapper)`,
 molto simile alla precedente, le uniche differenze che si notano sono:
@@ -87,7 +87,7 @@ che raccolga tutte le richieste dei client. Tale coda viene consumata da un prox
 su una **sola** richiesta e complementarménte ogni client attende una risposta. \
 In MQTT, come abbiamo già detto, non è presente il concetto di coda condivisa, per tanto qualora il client faccia una
 richiesta essa sarà soddisfatta da entrambi i proxy, se liberi. Tale condizione pone uno spreco di risorse, con conseguente
-diminuzione del throughput, anche se l'intento era proprio l'opposto. \
+diminuzione del _throughput_, anche se l'intento era proprio l'opposto. \
 Per concludere si fa cenno ad un'altra possibile soluzione del problema: infatti sfruttando la versione più aggiornata del
 protocollo MQTT, ovvero la 5, si può usufruire del [request/response pattern]. Tuttavia tale soluzione **attualmente**
 ha alcune problematiche:
@@ -96,7 +96,7 @@ ha alcune problematiche:
 * la versione di Mosquitto messa a disposizione dall'università non ha il supporto per tale versione: infatti la versione
   attualmente installata è la 1.4.10, mentre il supporto è stato aggiunto solo dalla [1.6] in poi.
   
-Infine qualora si volesse sperimentare tale funzionalità si può utilizzare il comando <code>[mosquitto-rr]</code> disponibile 
+Infine qualora si volesse sperimentare tale funzionalità si può utilizzare il comando <code>[mosquitto_rr]</code> disponibile 
 dalla versione 1.6.9.
 
 [//]: # (sitografia)
@@ -116,7 +116,7 @@ dalla versione 1.6.9.
 [JsonRpcMapper.JsonRpcResponse]: https://github.com/rabbitmq/rabbitmq-java-client/blob/52c0643e3f0dd1d65fee7540410e7b611d239435/src/main/java/com/rabbitmq/tools/jsonrpc/JsonRpcMapper.java#L91
 [BlockingCell]: https://github.com/rabbitmq/rabbitmq-java-client/blob/52c0643e3f0dd1d65fee7540410e7b611d239435/src/main/java/com/rabbitmq/utility/BlockingCell.java
 [request/response pattern]: https://www.hivemq.com/blog/mqtt5-essentials-part9-request-response-pattern/
-[mosquitto-rr]: https://mosquitto.org/man/mosquitto_rr-1.html
+[mosquitto_rr]: https://mosquitto.org/man/mosquitto_rr-1.html
 [libreria]: https://github.com/eclipse/paho.mqtt.java
 [altra libreria]: https://github.com/hivemq/hivemq-mqtt-client
 [1.6]: https://github.com/eclipse/mosquitto/blob/68c1e51035467ade10533c7bb88aa9765241c104/ChangeLog.txt#L296

@@ -3,7 +3,7 @@
 Al fine di realizzare un esercizio il più realistico possibile si è deciso di sfruttare un database su file, in particolare
 [SQLite]. \
 Il server mette a disposizione un log dettagliato di tutte le richieste che pervengono con relative risposte. Per poter
-provare rapidamente le API definite collegarsi al _path_ [/swagger]. Attraverso la comoda interfaccia grafica è possibile 
+provare rapidamente le API definite, collegarsi al _path_ [/swagger]. Attraverso la comoda interfaccia grafica è possibile 
 testare le API ed esaminarne le risposte, ma anche avere esempi di risposte o richieste in entrambi i formati XML o JSON. \
 Infine si riporta la query DDL dello _schema_ creato anche presente nel codice:
 ```sqlite

@@ -24,5 +24,5 @@ Eseguire in una finestra di terminale:
 ```
 dove:
 * `file_da_firmare` percorso del file da firmare
-* `password` è una string
+* `password` è una stringa
 * `pubkey_file` file contenete la chiave pubblica
