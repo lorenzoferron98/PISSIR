@@ -3,6 +3,7 @@ package it.uniupo;
 import com.google.gson.Gson;
 import it.uniupo.descriptors.Environment;
 import it.uniupo.descriptors.Executor;
+import it.uniupo.mqttv3.Mode;
 import it.uniupo.mqttv3.MqttV3Executor;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
@@ -72,7 +73,7 @@ public class App {
         Map<Integer, Double> totAverageRTT = new HashMap<>();
         double totAverageElapsedTime = 0;
         double totSpeedRate = 0;
-        int nQos = results.get(0).stream().filter(foo -> foo.getRcvMsg() == 0).collect(Collectors.groupingBy(Data::getQos)).size();
+        int nQos = results.get(0).stream().filter(data -> data.getMode() == Mode.PUB).collect(Collectors.groupingBy(Data::getQos)).size();
         int offset = 25 * nQos;
         System.out.printf("%-30s %-30s %-30s %-" + (offset + nQos - 1) + ".30s %-30.30s %-30.30s %n%n", "sendMsg", "rcvMsg", "lostMsg*", "averageRTT (ms)", "averageElapsedTime (s)", "speedRate (msg/s)");
         for (List<Data> run : results) {
@@ -84,10 +85,10 @@ public class App {
             for (Map.Entry<String, Long> entry : run.stream().collect(Collectors.groupingBy(Data::getTopic, Collectors.summingLong(Data::getSendMsg))).entrySet()) {
                 String topic = entry.getKey();
                 Long sum = entry.getValue();
-                lostMsg += sum * run.stream().filter(foo -> foo.getTopic().equals(topic) && foo.getSendMsg() == 0).count() - run.stream().filter(foo -> foo.getTopic().equals(topic) && foo.getSendMsg() == 0).mapToLong(Data::getRcvMsg).sum();
+                lostMsg += sum * run.stream().filter(foo -> foo.getTopic().equals(topic) && foo.getMode() == Mode.SUB).count() - run.stream().filter(foo -> foo.getTopic().equals(topic) && foo.getMode() == Mode.SUB).mapToLong(Data::getRcvMsg).sum();
             }
             totLostMsg += lostMsg;
-            Map<Integer, Double> averageRTT = run.stream().filter(foo -> foo.getRcvMsg() == 0).collect(Collectors.groupingBy(Data::getQos, Collectors.averagingDouble(Data::getAverageRTT)));
+            Map<Integer, Double> averageRTT = run.stream().filter(foo -> foo.getMode() == Mode.PUB).collect(Collectors.groupingBy(Data::getQos, Collectors.averagingDouble(Data::getAverageRTT)));
             averageRTT.forEach((key, value) -> totAverageRTT.merge(key, value, (v1, v2) -> totAverageRTT.get(key) + value));
             double averageElapsedTime = run.stream().mapToDouble(Data::getElapsedTime).average().orElse(0) / 1000;
             totAverageElapsedTime += averageElapsedTime;
@@ -101,20 +102,22 @@ public class App {
                 System.out.printf("%-30.10f %-30.10f %n", averageElapsedTime, speedRate);
             }
         }
-        if (verbosity) {
+        if (verbosity)
             System.out.println("\n" + String.join("", Collections.nCopies(30 * 5 + (offset + nQos - 1), "+")));
-        }
         System.out.printf("%-30d %-30d %-30d ", totSendMsg, totRcvMsg, totLostMsg);
         totAverageRTT.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .forEach(e -> System.out.printf("%-25.20s ", "QoS " + e.getKey() + ": " + e.getValue()));
+                .forEach(e -> System.out.printf("%-25.20s ", "QoS " + e.getKey() + ": " + e.getValue() / results.size()));
         System.out.printf("%-30.10f %-30.10f %n", totAverageElapsedTime / results.size(), totSpeedRate / results.size());
         System.out.println();
     }
 
     private static boolean loadResources(String[] resources) throws IOException {
-        File jsonEnv = new File(resources[0]);
-        if (!jsonEnv.exists() || jsonEnv.isDirectory()) {
+        File jsonEnv = null;
+        try {
+            jsonEnv = new File(resources[0]);
+        } catch (ArrayIndexOutOfBoundsException ignored) {}
+        if (jsonEnv == null || !jsonEnv.exists() || jsonEnv.isDirectory()) {
             String workingDir = System.getProperty("user.dir");
             System.out.println("File not found. Saving sample.json in " + workingDir);
             try (InputStream in = App.class.getResourceAsStream("/sample.json")) {

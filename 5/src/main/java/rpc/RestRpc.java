@@ -1,4 +1,4 @@
-package rpc.common;
+package rpc;
 
 import com.google.gson.Gson;
 import it.uniupo.beans.Student;

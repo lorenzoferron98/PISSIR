@@ -1,4 +1,4 @@
-package rpc.common;
+package rpc;
 
 import it.uniupo.beans.Student;
 import retrofit2.Call;

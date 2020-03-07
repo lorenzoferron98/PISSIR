@@ -1,5 +1,7 @@
 package it.uniupo;
 
+import it.uniupo.mqttv3.Mode;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +13,7 @@ import java.util.List;
  */
 public class Data {
 
+    private Mode mode;
     private String topic;
     private int qos;
     private long sendMsg;
@@ -22,11 +25,12 @@ public class Data {
         // Empty body...
     }
 
-    public Data(String topic, long sendMsg, long rcvMsg, long elapsedTime) {
+    public Data(String topic, long sendMsg, long rcvMsg, long elapsedTime, Mode mode) {
         this.topic = topic;
         this.sendMsg = sendMsg;
         this.rcvMsg = rcvMsg;
         this.elapsedTime = elapsedTime;
+        this.mode = mode;
     }
 
     public String getTopic() {
@@ -77,4 +81,11 @@ public class Data {
         this.qos = qos;
     }
 
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(Mode mode) {
+        this.mode = mode;
+    }
 }

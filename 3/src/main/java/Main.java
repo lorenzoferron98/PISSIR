@@ -61,14 +61,17 @@ public class Main {
             // oops, something went wrong
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
             usage(formatter, options, 1);
-        } catch (Exception e) {
+        } catch (ArrayIndexOutOfBoundsException e) {
             System.err.println("Insufficient arguments provided");
             usage(formatter, options, 1);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
         }
     }
 
     private static void usage(HelpFormatter formatter, Options options, int exitsStatus) {
-        formatter.printHelp("ENV_FILE URL", DESCRIPTION, options, null, true);
+        formatter.printHelp("ENV_FILE URI", DESCRIPTION, options, null, true);
         System.exit(exitsStatus);
     }
 

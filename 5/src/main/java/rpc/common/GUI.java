@@ -4,12 +4,15 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import it.uniupo.beans.Student;
 import org.apache.commons.lang3.SystemUtils;
+import rpc.JsonService;
 import rpc.common.util.InputUtils;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.logging.Logger;
 
 /**
@@ -35,7 +38,7 @@ public class GUI {
 
     private void displayMenu() {
         showMenu();
-        selectAction(choose(JsonService.class.getDeclaredMethods().length + 1, false));
+        selectAction(choose(JsonService.class.getDeclaredMethods().length + 2, false));
     }
 
     private int choose(int end, boolean subMenu) {
@@ -74,12 +77,62 @@ public class GUI {
                 updateAction();
                 break;
             case 6:
+                multithreadingDemo();
+                break;
+            case 7:
                 InputUtils.close();
                 return;
             default:
                 break;
         }
         displayMenu();
+    }
+
+    private void multithreadingDemo(){
+        clearScreen();
+        System.out.println("Main Menu > Multithreading Demo");
+        System.out.println();
+
+        final CyclicBarrier gate = new CyclicBarrier(3);
+        Thread t1 = new Thread(() -> {
+            Gson gson = new Gson();
+            try {
+                gate.await();
+                List<Student> students = gson.fromJson(service.getAll(new HashMap<>()), new TypeToken<List<Student>>() {
+                }.getType());
+                printSearchResults(students);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+            Student student = new Student();
+            student.setAa("2019-2020");
+            student.setCdl("Informatica");
+            student.setDob(new Timestamp(896018400000L));
+            student.setGender('F');
+            student.setName("Valentina");
+            student.setSurname("Ferron");
+            try {
+                gate.await();
+                System.out.println();
+                System.out.println(service.create(student));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            System.out.println();
+        });
+        t1.start();
+        t2.start();
+        try {
+            gate.await();
+            System.out.println("all threads started");
+            t1.join();
+            t2.join();
+        } catch (InterruptedException | BrokenBarrierException e) {
+            e.printStackTrace();
+        }
     }
 
     private void updateAction() {
@@ -148,6 +201,15 @@ public class GUI {
         }
     }
 
+    private void printSearchResults(List<Student> students) {
+        System.out.println("\nSEARCH RESULTS (" + students.size() + "): \n");
+        if (students.isEmpty()) System.out.println("No results found\n");
+        else students.forEach(res -> {
+            System.out.println(res);
+            System.out.println();
+        });
+    }
+
     private void searchAction() {
         clearScreen();
         System.out.println("Main Menu > Search an existing student for...");
@@ -169,12 +231,7 @@ public class GUI {
             Gson gson = new Gson();
             List<Student> students = gson.fromJson(service.getAll(filters), new TypeToken<List<Student>>() {
             }.getType());
-            System.out.println("\nSEARCH RESULTS (" + students.size() + "): \n");
-            if (students.isEmpty()) System.out.println("No results found\n");
-            else students.forEach(res -> {
-                System.out.println(res);
-                System.out.println();
-            });
+            printSearchResults(students);
         } catch (StringIndexOutOfBoundsException e) {
             LOGGER.warning("Gender is empty!");
         } catch (NumberFormatException e) {
@@ -295,8 +352,9 @@ public class GUI {
                         "|        3. Unenroll a student                     |\n" +
                         "|        4. Find a student                         |\n" +
                         "|        5. Update a student info                  |\n" +
+                        "|        6. Multithreading Demo                    |\n" +
                         "|                                                  |\n" +
-                        "|        6. QUIT                                   |\n" +
+                        "|        7. QUIT                                   |\n" +
                         "|                                                  |\n" +
                         "+--------------------------------------------------+\n");
         System.out.println();

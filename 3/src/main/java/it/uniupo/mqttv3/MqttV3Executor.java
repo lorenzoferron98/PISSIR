@@ -17,7 +17,6 @@ public class MqttV3Executor implements MqttCallback {
     MqttV3Publish v3PublishParameters;
     MqttV3Subscribe v3SubscriptionParameters;
     MqttAsyncClient v3Client;
-    private int actionTimeout = Integer.MAX_VALUE; // The time in ms to wait for any action to timeout.
     private long timeout;
     private Data data = new Data();
     private Mode mode;
@@ -34,19 +33,20 @@ public class MqttV3Executor implements MqttCallback {
     public MqttV3Executor(int qos, String topic, String payload, int timeout, String hostURI) {
         data.setTopic(topic);
         data.setQos(qos);
-        mode = payload == null ? Mode.SUB : Mode.PUB;
+        data.setMode(mode = payload == null ? Mode.SUB : Mode.PUB);
         this.timeout = TimeUnit.SECONDS.toMillis(timeout);
         this.v3ConnectionParameters = new MqttV3Connection(hostURI);
-        if (payload != null)
+        if (payload != null) {
+            this.v3ConnectionParameters.setMaxInflight(3000000);
             this.v3PublishParameters = new MqttV3Publish(payload, qos, topic);
-        else
+        } else
             this.v3SubscriptionParameters = new MqttV3Subscribe(topic, qos);
     }
 
     @Override
     public void connectionLost(Throwable cause) {
         if (!v3ConnectionParameters.isAutomaticReconnectEnabled())
-            closeClentAndExit();
+            closeClientAndExit();
     }
 
     @Override
@@ -68,13 +68,13 @@ public class MqttV3Executor implements MqttCallback {
 
             // Connect to Server
             IMqttToken connectToken = v3Client.connect(v3ConnectionParameters.getConOpts());
-            connectToken.waitForCompletion(actionTimeout);
 
             // Execute action based on mode
-            gate.await();
             if (mode == Mode.PUB) {
                 // Publish a message
                 long msgCount = 0;
+                connectToken.waitForCompletion();
+                gate.await();
                 long start = System.currentTimeMillis();
                 long end = start + timeout;
 
@@ -86,31 +86,29 @@ public class MqttV3Executor implements MqttCallback {
                 data.setSendMsg(msgCount);
                 data.setElapsedTime(System.currentTimeMillis() - start);
             } else {
+                connectToken.waitForCompletion();
                 // Subscribe to a topic
                 IMqttToken subToken = this.v3Client.subscribe(v3SubscriptionParameters.getTopic(),
                         v3SubscriptionParameters.getQos());
+                gate.await();
                 long start = System.currentTimeMillis();
-                subToken.waitForCompletion(actionTimeout);
 
-                long end = start + timeout;
-
-                while (System.currentTimeMillis() <= end) ;
+                for (long end = start + timeout; System.currentTimeMillis() <= end;) ;
                 data.setElapsedTime(System.currentTimeMillis() - start);
             }
 
             // Close the client
             disconnectClient();
-            closeClentAndExit();
+            closeClientAndExit();
         } catch (MqttException | IOException | InterruptedException | BrokenBarrierException e) {
             e.printStackTrace();
         }
     }
 
-    private void closeClentAndExit() {
+    private void closeClientAndExit() {
         // Close the client
         try {
             this.v3Client.close();
-            //System.exit(0);
             //mainThread.join();
         } catch (MqttException e) {
             // End the Application
@@ -120,8 +118,8 @@ public class MqttV3Executor implements MqttCallback {
 
     private void disconnectClient() throws MqttException {
         // Disconnect
-        IMqttToken disconnectToken = v3Client.disconnect();
-        disconnectToken.waitForCompletion(actionTimeout);
+        IMqttToken disconnectToken = v3Client.disconnect(timeout * 2);
+        disconnectToken.waitForCompletion();
     }
 
     /**
@@ -155,7 +153,7 @@ public class MqttV3Executor implements MqttCallback {
                 // NO-OP
             }
         });
-        deliveryToken.waitForCompletion(actionTimeout);
+        deliveryToken.waitForCompletion();
     }
 
     public Data getResults() {

@@ -1,4 +1,4 @@
-package rpc.over.mqtt.jsonrpc;
+package rpc.json;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.rabbitmq.tools.jsonrpc.DefaultJsonRpcMapper;
@@ -134,13 +134,8 @@ public class JsonRpcServer {
             });
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> keepRunning = false));
-        } catch (MqttException me) {
-            System.out.println("reason " + me.getReasonCode());
-            System.out.println("msg " + me.getMessage());
-            System.out.println("loc " + me.getLocalizedMessage());
-            System.out.println("cause " + me.getCause());
-            System.out.println("excep " + me);
-            me.printStackTrace();
+        } catch (MqttException e) {
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -163,7 +158,6 @@ public class JsonRpcServer {
             System.exit(1);
         }
 
-        System.out.println("Proxy service started");
         while (keepRunning) ;
         disconnectClient();
         closeClientAndExit();

@@ -1,4 +1,4 @@
-package rpc.over.mqtt.jsonrpc;
+package rpc.json;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;

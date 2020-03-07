@@ -18,6 +18,6 @@ openssl dgst -sha256 -verify 'rec.pubkey.pem' -signature 'rec.sign' "$1"
 # clean all
 rm -rf 'rec.sign' 'rec.pubkey.pem'
 # zip
-zip -r 'consegna1.zip' "$1.sign.base64" 'certificate.pem' 'README.txt' "$1" -v
+zip -r 'consegna1.zip' "$1.sign.base64" 'certificate.pem' "$1" -v
 # send mail
 exit 0

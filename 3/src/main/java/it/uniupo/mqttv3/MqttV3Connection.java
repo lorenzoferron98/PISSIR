@@ -33,4 +33,8 @@ public class MqttV3Connection {
         return this.automaticReconnect;
     }
 
+    public void setMaxInflight(int maxInflight) {
+        conOpts.setMaxInflight(maxInflight);
+    }
+
 }

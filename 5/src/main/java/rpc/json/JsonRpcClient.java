@@ -1,13 +1,16 @@
-package rpc.over.mqtt.jsonrpc;
+package rpc.json;
 
 import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.tools.jsonrpc.JsonRpcException;
 import com.rabbitmq.tools.jsonrpc.JsonRpcMapper;
 import com.rabbitmq.tools.jsonrpc.ProcedureDescription;
 import com.rabbitmq.tools.jsonrpc.ServiceDescription;
+import com.rabbitmq.utility.BlockingCell;
 import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
@@ -15,7 +18,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
@@ -28,21 +30,26 @@ import java.util.concurrent.TimeoutException;
  */
 public class JsonRpcClient implements InvocationHandler {
 
-    private final static Random GENERATOR = new Random();
-
-    private static volatile boolean keepRunning = true;
-    private static volatile String replyStr;
+    private static final Logger LOGGER = LoggerFactory.getLogger(JsonRpcClient.class);
 
     private final JsonRpcMapper mapper;
     private final String serverUri;
     private final String replyToTopic;
     private final String sendToTopic;
     /**
+     * Map from request correlation ID to continuation BlockingCell
+     */
+    private final Map<String, BlockingCell<String>> _continuationMap = new HashMap<>();
+    /**
      * Holds the JSON-RPC service description for this client.
      */
     private ServiceDescription serviceDescription;
     private MqttAsyncClient mqttClient;
-    private int actionTimeout = 5000;
+    private int actionTimeout = -1;
+    /**
+     * Contains the most recently-used request correlation ID
+     */
+    private int _correlationId;
 
     public JsonRpcClient(String serverUri, JsonRpcMapper mapper, String sendToTopic)
             throws JsonRpcException, TimeoutException, IOException, MqttException {
@@ -50,6 +57,7 @@ public class JsonRpcClient implements InvocationHandler {
         this.mapper = mapper;
         this.sendToTopic = sendToTopic;
         this.replyToTopic = "/F3rr0N/rpcanswer/" + UUID.randomUUID().toString();
+        _correlationId = 0;
         initMqttClient();
         retrieveServiceDescription();
     }
@@ -73,13 +81,18 @@ public class JsonRpcClient implements InvocationHandler {
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) {
-                    replyStr = new String(message.getPayload());
-                    keepRunning = false;
+                    String replyId = String.valueOf(message.getId());
+                    BlockingCell<String> blocker = _continuationMap.remove(replyId);
+                    if (blocker == null) {
+                        // Entry should have been removed if request timed out,
+                        // log a warning nevertheless.
+                        LOGGER.warn("No outstanding request for correlation ID {}", replyId);
+                    } else blocker.set(new String(message.getPayload()));
                 }
 
                 @Override
                 public void deliveryComplete(IMqttDeliveryToken token) {
-
+                    // NO-OP
                 }
             });
 
@@ -95,13 +108,8 @@ public class JsonRpcClient implements InvocationHandler {
                 System.err.println("Expected Qos level 1 but got Qos level: " + subToken.getGrantedQos()[0]);
                 System.exit(1);
             }
-        } catch (MqttException me) {
-            System.out.println("reason " + me.getReasonCode());
-            System.out.println("msg " + me.getMessage());
-            System.out.println("loc " + me.getLocalizedMessage());
-            System.out.println("cause " + me.getCause());
-            System.out.println("excep " + me);
-            me.printStackTrace();
+        } catch (MqttException e) {
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -126,20 +134,34 @@ public class JsonRpcClient implements InvocationHandler {
      */
     public Object call(String method, Object[] params) throws MqttException, TimeoutException, IOException, JsonRpcException {
         Map<String, Object> request = new HashMap<>();
-        request.put("id", "rpc" + GENERATOR.nextInt(Integer.MAX_VALUE));
+        BlockingCell<String> k = new BlockingCell<>();
+        String replyId;
+        synchronized (_continuationMap) {
+            _correlationId++;
+            replyId = "" + _correlationId;
+            _continuationMap.put(replyId, k);
+            if (_correlationId == Integer.MAX_VALUE)
+                _correlationId = 0;
+        }
+        request.put("id", null);
         request.put("method", method);
         request.put("version", ServiceDescription.JSON_RPC_VERSION);
         params = (params == null) ? new Object[0] : params;
         params = ArrayUtils.add(params, replyToTopic);
         request.put("params", params);
         String requestStr = mapper.write(request);
-        publishMessage(requestStr.getBytes(), 0, false, sendToTopic);
+        publishMessage(replyId, requestStr.getBytes(), 0, false, sendToTopic);
         params = ArrayUtils.remove(params, params.length - 1);
+        String replyStr;
+        try {
+            replyStr = actionTimeout == -1 ? k.uninterruptibleGet() : k.uninterruptibleGet(actionTimeout);
+        } catch (TimeoutException ex) {
+            // Avoid potential leak.  This entry is no longer needed by caller.
+            _continuationMap.remove(replyId);
+            throw ex;
+        }
+        if (LOGGER.isDebugEnabled()) LOGGER.debug("Reply string: {}", replyStr);
 
-        keepRunning = true;
-        long end = System.currentTimeMillis() + actionTimeout;
-        while (keepRunning && System.currentTimeMillis() <= end) ;
-        if (keepRunning) throw new TimeoutException("Exceeded action timeout: " + actionTimeout + "ms");
         try {
             Class<?> expectedType;
             if ("system.describe".equals(method) && params.length == 0) expectedType = Map.class;
@@ -147,9 +169,9 @@ public class JsonRpcClient implements InvocationHandler {
                 ProcedureDescription proc = serviceDescription.getProcedure(method, params.length);
                 expectedType = proc.getReturnType();
             }
-            JsonRpcMapper.JsonRpcResponse reply = mapper.parse(replyStr, expectedType);
+            JsonRpcMapper.JsonRpcResponse response = mapper.parse(replyStr, expectedType);
 
-            return checkReply(reply);
+            return checkReply(response);
         } catch (ShutdownSignalException ex) {
             throw new IOException(ex.getMessage()); // wrap, re-throw
         }
@@ -166,11 +188,12 @@ public class JsonRpcClient implements InvocationHandler {
      * @throws MqttPersistenceException
      * @throws MqttException
      */
-    private void publishMessage(byte[] payload, int qos, boolean retain, String topic)
+    private void publishMessage(String replyId, byte[] payload, int qos, boolean retain, String topic)
             throws MqttPersistenceException, MqttException {
         MqttMessage v3Message = new MqttMessage(payload);
         v3Message.setQos(qos);
         v3Message.setRetained(retain);
+        v3Message.setId(Integer.parseInt(replyId));
         IMqttDeliveryToken deliveryToken = mqttClient.publish(topic, v3Message);
         deliveryToken.waitForCompletion(actionTimeout);
     }
@@ -234,5 +257,21 @@ public class JsonRpcClient implements InvocationHandler {
             // End the Application
             System.exit(1);
         }
+    }
+
+    /**
+     * Retrieve the continuation map.
+     * @return the map of objects to blocking cells for this client
+     */
+    public Map<String, BlockingCell<String>> getContinuationMap() {
+        return _continuationMap;
+    }
+
+    /**
+     * Retrieve the correlation id.
+     * @return the most recently used correlation id
+     */
+    public int getCorrelationId() {
+        return _correlationId;
     }
 }
